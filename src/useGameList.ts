@@ -2,6 +2,7 @@ import { db } from "./db";
 import { useEffect, useState } from "react";
 
 interface Game {
+  id: string;
   name: string;
   timestamp: number;
 }
@@ -10,7 +11,6 @@ export default function useGameList(): null | ReadonlyArray<Game> {
   const [gameList, setGameList] = useState<null | ReadonlyArray<Game>>(null);
   useEffect(() => {
     const cb = (snapshot: any) => {
-      console.log("snapshot is", snapshot);
       const gameList: Array<Game> = [];
       snapshot.forEach((snap: any) => {
         gameList.push(snap.val());

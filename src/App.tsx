@@ -1,5 +1,4 @@
 import React from "react";
-import logo from "./logo.svg";
 import "./App.css";
 import { Flex, Heading, ChakraProvider } from "@chakra-ui/react";
 import GameList from "./GameList";

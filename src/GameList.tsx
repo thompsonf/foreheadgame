@@ -60,9 +60,6 @@ function AllGames() {
 }
 
 export default function GameList() {
-  const gameNames = useGameList();
-  const list =
-    gameNames == null ? <div>Loading...</div> : <div>{gameNames}</div>;
   return (
     <div>
       <NewGame />
