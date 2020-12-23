@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { useEffect, useState } from "react";
 
-interface Game {
+export interface Game {
   id: string;
   name: string;
   timestamp: number;
@@ -13,7 +13,7 @@ export default function useGameList(): null | ReadonlyArray<Game> {
     const cb = (snapshot: any) => {
       const gameList: Array<Game> = [];
       snapshot.forEach((snap: any) => {
-        gameList.push(snap.val());
+        gameList.push({ id: snap.key, ...snap.val() });
       });
       gameList.reverse();
       setGameList(gameList);
