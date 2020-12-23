@@ -3,14 +3,11 @@ import { useEffect, useState } from "react";
 import { db } from "./db";
 import {
   Button,
-  Flex,
   Heading,
   HStack,
   Input,
-  ListItem,
   Spinner,
   Text,
-  UnorderedList,
 } from "@chakra-ui/react";
 import { Game as IGame } from "./useGameList";
 
@@ -18,7 +15,7 @@ interface ParamTypes {
   id: string;
 }
 
-interface Player {
+interface IPlayer {
   forehead: string;
   id: string;
   name: string;
@@ -65,14 +62,14 @@ function NewPlayer() {
   );
 }
 
-function usePlayerList(): null | ReadonlyArray<Player> {
+function usePlayerList(): null | ReadonlyArray<IPlayer> {
   const { id } = useParams<ParamTypes>();
-  const [playerList, setPlayerList] = useState<null | ReadonlyArray<Player>>(
+  const [playerList, setPlayerList] = useState<null | ReadonlyArray<IPlayer>>(
     null
   );
   useEffect(() => {
     const cb = (snapshot: any) => {
-      const playerList: Array<Player> = [];
+      const playerList: Array<IPlayer> = [];
       snapshot.forEach((snap: any) => {
         playerList.push({ id: snap.key, ...snap.val() });
       });
@@ -81,7 +78,7 @@ function usePlayerList(): null | ReadonlyArray<Player> {
     };
     db.ref(`games/${id}/players`).on("value", cb);
     return () => db.ref(`games/${id}/players`).off("value", cb);
-  }, []);
+  }, [id]);
   return playerList;
 }
 
@@ -98,11 +95,11 @@ function useGame(): null | IGame {
     };
     db.ref(`games/${id}`).on("value", cb);
     return () => db.ref(`games/${id}`).off("value", cb);
-  }, []);
+  }, [id]);
   return game;
 }
 
-function Player(props: { player: Player }) {
+function Player(props: { player: IPlayer }) {
   const { id } = useParams<ParamTypes>();
   const [isHidden, setIsHidden] = useState(true);
   return (
@@ -153,7 +150,7 @@ function AllPlayers() {
         <th style={{ padding: 12 }} />
       </tr>
       {playerList.map((player) => {
-        return <Player player={player} />;
+        return <Player key={player.id} player={player} />;
       })}
     </table>
   );

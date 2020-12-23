@@ -48,15 +48,13 @@ function AllGames() {
     return <Spinner />;
   }
   return (
-    <UnorderedList stylePosition="inside">
+    <UnorderedList spacing={2} stylePosition="inside">
       {gameList.map((game) => {
         const date = new Date(game.timestamp);
         return (
-          <ListItem>
-            <CLink color="teal.500">
-              <RLink to={`/${game.id}`}>
-                {game.name} - {date.toLocaleString()}
-              </RLink>
+          <ListItem key={game.id}>
+            <CLink as={RLink} color="teal.500" to={`/${game.id}`}>
+              {game.name} - {date.toLocaleString()}
             </CLink>
           </ListItem>
         );
@@ -69,8 +67,8 @@ export default function GameList() {
   return (
     <div>
       <NewGame />
-      <Heading as="h4" size="md">
-        Past games
+      <Heading as="h4" marginBottom={4} size="md">
+        All games
       </Heading>
       <AllGames />
     </div>
