@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { db } from "./db";
+import { LockIcon, UnlockIcon } from "@chakra-ui/icons";
 import {
   Button,
   Heading,
@@ -19,6 +20,8 @@ interface IPlayer {
   forehead: string;
   id: string;
   name: string;
+  timeCreated: number;
+  timeFinished: null | number;
 }
 
 function NewPlayer() {
@@ -31,6 +34,8 @@ function NewPlayer() {
     db.ref(`games/${id}/players`).push({
       forehead,
       name,
+      timeCreated: Date.now(),
+      timeFinished: null,
     });
   };
   return (
@@ -73,10 +78,9 @@ function usePlayerList(): null | ReadonlyArray<IPlayer> {
       snapshot.forEach((snap: any) => {
         playerList.push({ id: snap.key, ...snap.val() });
       });
-      playerList.reverse();
       setPlayerList(playerList);
     };
-    db.ref(`games/${id}/players`).on("value", cb);
+    db.ref(`games/${id}/players`).orderByChild("timeCreated").on("value", cb);
     return () => db.ref(`games/${id}/players`).off("value", cb);
   }, [id]);
   return playerList;
@@ -102,6 +106,7 @@ function useGame(): null | IGame {
 function Player(props: { player: IPlayer }) {
   const { id } = useParams<ParamTypes>();
   const [isHidden, setIsHidden] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
   return (
     <tr>
       <td style={{ padding: 12 }}>
@@ -113,6 +118,7 @@ function Player(props: { player: IPlayer }) {
       <td style={{ padding: 12 }}>
         <Button
           colorScheme="teal"
+          isDisabled={isLocked}
           variant="solid"
           onClick={() => setIsHidden(!isHidden)}
           size="sm"
@@ -123,6 +129,7 @@ function Player(props: { player: IPlayer }) {
       <td style={{ padding: 12 }}>
         <Button
           colorScheme="red"
+          isDisabled={isLocked}
           variant="solid"
           onClick={() => {
             db.ref(`games/${id}/players/${props.player.id}`).remove();
@@ -132,34 +139,126 @@ function Player(props: { player: IPlayer }) {
           Delete
         </Button>
       </td>
+      <td style={{ padding: 12 }}>
+        <Button
+          colorScheme="blue"
+          isDisabled={isLocked}
+          variant="solid"
+          onClick={() => {
+            db.ref(`games/${id}/players/${props.player.id}/timeFinished`).set(
+              Date.now()
+            );
+          }}
+          size="sm"
+        >
+          Done
+        </Button>
+      </td>
+      <td style={{ padding: 12 }}>
+        <Button
+          colorScheme="gray"
+          leftIcon={isLocked ? <UnlockIcon /> : <LockIcon />}
+          variant="solid"
+          onClick={() => setIsLocked(!isLocked)}
+          size="sm"
+        >
+          {isLocked ? "Unlock" : "Lock"}
+        </Button>
+      </td>
     </tr>
   );
 }
 
-function AllPlayers() {
-  const playerList = usePlayerList();
-  if (playerList == null) {
-    return <Spinner />;
-  }
+function FinishedPlayer(props: { player: IPlayer }) {
+  const { id } = useParams<ParamTypes>();
+  const [isLocked, setIsLocked] = useState(true);
   return (
-    <table>
-      <tr>
-        <th style={{ padding: 12 }}>Player</th>
-        <th style={{ padding: 12 }}>Forehead</th>
-        <th style={{ padding: 12 }} />
-        <th style={{ padding: 12 }} />
-      </tr>
-      {playerList.map((player) => {
-        return <Player key={player.id} player={player} />;
-      })}
-    </table>
+    <tr>
+      <td style={{ padding: 12 }}>
+        <Text>{props.player.name}</Text>
+      </td>
+      <td style={{ padding: 12 }}>
+        <Text>{props.player.forehead}</Text>
+      </td>
+      <td style={{ padding: 12 }}>
+        <Button
+          colorScheme="red"
+          isDisabled={isLocked}
+          variant="solid"
+          onClick={() => {
+            db.ref(`games/${id}/players/${props.player.id}/timeFinished`).set(
+              null
+            );
+          }}
+          size="sm"
+        >
+          Undo
+        </Button>
+      </td>
+      <td style={{ padding: 12 }}>
+        <Button
+          colorScheme="gray"
+          leftIcon={isLocked ? <UnlockIcon /> : <LockIcon />}
+          variant="solid"
+          onClick={() => setIsLocked(!isLocked)}
+          size="sm"
+        >
+          {isLocked ? "Unlock" : "Lock"}
+        </Button>
+      </td>
+    </tr>
+  );
+}
+
+function RemainingPlayers(props: { players: ReadonlyArray<IPlayer> }) {
+  return (
+    <>
+      <Heading as="h5" marginBottom={8} size="sm">
+        Remaining
+      </Heading>
+      <table>
+        <tr>
+          <th style={{ padding: 12 }}>Player</th>
+          <th style={{ padding: 12 }}>Forehead</th>
+          <th style={{ padding: 12 }} />
+          <th style={{ padding: 12 }} />
+          <th style={{ padding: 12 }} />
+        </tr>
+        {props.players.map((player) => {
+          return <Player key={player.id} player={player} />;
+        })}
+      </table>
+    </>
+  );
+}
+
+function FinishedPlayers(props: { players: ReadonlyArray<IPlayer> }) {
+  const sorted = [...props.players];
+  sorted.sort((a, b) => (a.timeFinished ?? 0) - (b.timeFinished ?? 0));
+  return (
+    <>
+      <Heading as="h5" marginBottom={8} marginTop={8} size="sm">
+        Finished
+      </Heading>
+      <table>
+        <tr>
+          <th style={{ padding: 12 }}>Player</th>
+          <th style={{ padding: 12 }}>Forehead</th>
+          <th style={{ padding: 12 }} />
+        </tr>
+        {sorted.map((player) => {
+          return <FinishedPlayer key={player.id} player={player} />;
+        })}
+      </table>
+    </>
   );
 }
 
 export default function Game() {
   const game = useGame();
-  if (game == null) {
-    return null;
+  const playerList = usePlayerList();
+  if (game == null || playerList == null) {
+    return <Spinner />;
   }
   return (
     <div>
@@ -167,7 +266,12 @@ export default function Game() {
         {game.name} - {new Date(game.timestamp).toLocaleString()}
       </Heading>
       <NewPlayer />
-      <AllPlayers />
+      <RemainingPlayers
+        players={playerList.filter((p) => p.timeFinished == null)}
+      />
+      <FinishedPlayers
+        players={playerList.filter((p) => p.timeFinished != null)}
+      />
     </div>
   );
 }
